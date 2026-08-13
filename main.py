@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 app = FastAPI()
 
-Base.metadata.create_all(bind=engine)
 
 @app.get("/tasks",response_model=list[TaskResponse])
 def get_tasks(db:Session=Depends(get_db)):
@@ -76,7 +75,7 @@ def update_task(task_id: int, task_data: TaskUpdate,  db: Session=Depends(get_db
 
 
 
-@app.delete("/task/{task_id}")
+@app.delete("/tasks/{task_id}")
 def delete_task(task_id:int,db:Session=Depends(get_db)):
     task = db.query(models.Task).filter(models.Task.id==task_id).first()
     if task is None:
