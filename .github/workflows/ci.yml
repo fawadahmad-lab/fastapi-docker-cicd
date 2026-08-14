@@ -44,7 +44,7 @@ jobs:
 
       - name: Verify installed packages
         run: |
-          pip show httpx2
+          pip show httpx
           pip show starlette
           pip show fastapi
 
