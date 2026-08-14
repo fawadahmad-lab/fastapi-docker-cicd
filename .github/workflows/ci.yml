@@ -53,14 +53,7 @@ jobs:
           DATABASE_URL: postgresql://fawad:testpassword@localhost:5432/aiappdb_test
         run: |
           pytest
-      
-
-
-            - name: Run tests
-        env:
-          DATABASE_URL: postgresql://fawad:testpassword@localhost:5432/aiappdb_test
-        run: |
-          pytest
+    
 
       - name: Build Docker image
         run: |
