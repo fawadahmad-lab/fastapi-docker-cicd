@@ -11,6 +11,16 @@ from sqlalchemy.orm import Session
 app = FastAPI()
 
 
+
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
+
+Base.metadata.create_all(bind=engine)
+
 @app.get("/tasks",response_model=list[TaskResponse])
 def get_tasks(db:Session=Depends(get_db)):
     tasks=db.query(models.Task).all()
@@ -86,3 +96,6 @@ def delete_task(task_id:int,db:Session=Depends(get_db)):
     db.delete(task)
     db.commit()
     return {"message": "Task Deleted Successfully ! "}
+
+
+
