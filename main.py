@@ -15,9 +15,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 import models
 from sqlalchemy.orm import Session
+from redis_client import redis_client 
+import json
+
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
 
 
 @app.post("/auth/login",response_model=TokenResponse)
@@ -25,11 +27,10 @@ def login(form_data:OAuth2PasswordRequestForm=Depends(), db:Session = Depends(ge
     user = (
         db.query(models.User).filter(models.User.username==form_data.username).first()
     )
-    if user is None or not verify_password:
+    if user is None or not verify_password(
         form_data.password,
         user.hashed_password,
-    
-
+    ):
         raise HTTPException(status_code=401,detail="Invalid username or password")
 
     access_token = create_access_token(
@@ -76,7 +77,34 @@ def health_check():
 @app.get("/tasks",response_model=list[TaskResponse])
 def get_tasks(db:Session=Depends(get_db),current_user: models.User = Depends(get_current_user),
     ):
-    tasks=(db.query(models.Task).filter(models.Task.user_id == current_user.id).all())
+    cache_key = f"tasks:user:{current_user.id}"
+    # check redis
+    cached_task = redis_client.get(cache_key)
+    if cached_task:
+        return json.loads(cached_task)
+    # cache miss
+    tasks =(
+        db.query(models.Task)
+        .filter(models.Task.user_id == current_user.id)
+        .all()
+    )
+
+    # convert to json
+    task_data=[{
+        "id":task.id,
+        "title":task.title,
+        "description":task.description,
+        "completed":task.completed,
+        "user_id":task.user_id,
+    }
+    for task in tasks
+    ]
+    # store in redis
+    redis_client.setex(
+        cache_key,
+        60,
+        json.dumps(task_data),
+    )
     return tasks
 
 
@@ -107,6 +135,9 @@ def create_task(task:TaskCreate,db: Session = Depends(get_db),
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
+
+
+    redis_client.delete(f"tasks:user:{current_user.id}")
     return new_task
 
 
@@ -131,6 +162,7 @@ def update_task(task_id: int,
 
     db.commit()
     db.refresh(task)
+    redis_client.delete(f"tasks:user:{current_user.id}")
     return task
 
 
@@ -148,7 +180,5 @@ def delete_task(task_id:int,
 
     db.delete(task)
     db.commit()
+    redis_client.delete(f"tasks:user:{current_user.id}")
     return {"message": "Task Deleted Successfully ! "}
-
-
-

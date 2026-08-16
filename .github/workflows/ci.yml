@@ -24,6 +24,13 @@ jobs:
           POSTGRES_DB: aiappdb_test
           POSTGRES_USER: fawad
           POSTGRES_PASSWORD: testpassword
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+          
+      
         ports:
           - 5432:5432
         options: >-
